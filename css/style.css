@@ -458,3 +458,59 @@ body.modal-open { overflow: hidden; }
 .mistake-img img { max-width: 100%; max-height: 300px; border-radius: 10px; border: 1px solid var(--line); cursor: zoom-in; display: block; }
 .lightbox-img { text-align: center; }
 .lightbox-img img { max-width: 100%; max-height: 70vh; border-radius: 10px; }
+
+/* ===== 考试倒计时 ===== */
+.countdown-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.countdown-card { display: block; text-align: center; background: linear-gradient(120deg, #FFF6EC, #FFEFF7); border-color: #F5DDC4; margin-bottom: 0; transition: transform .15s, box-shadow .15s; }
+.countdown-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(31,36,55,.08); }
+.countdown-label { font-size: 13px; font-weight: 800; color: #9A6B0F; }
+.countdown-num { font-size: 40px; font-weight: 800; color: #E5484D; line-height: 1.2; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.countdown-num .countdown-unit { font-size: 16px; margin-left: 4px; }
+.countdown-num.today { font-size: 26px; }
+.countdown-num.done { font-size: 22px; color: var(--muted); }
+.countdown-date { font-size: 12px; color: var(--muted); }
+.countdown-tip { font-size: 11px; color: #B8A98F; margin-top: 8px; }
+
+/* ===== 每日任务 ===== */
+.task-add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.task-add-row input { flex: 1; min-width: 0; }
+.task-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.task-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #FBFCFE; }
+.task-item.done { opacity: .75; }
+.task-text { flex: 1; font-size: 13px; word-break: break-all; }
+.task-item-actions { display: flex; gap: 6px; flex: none; }
+.task-summary { font-size: 12px; color: var(--green); font-weight: 700; margin-top: 4px; }
+.task-done-list summary { cursor: pointer; font-size: 12px; color: var(--primary); font-weight: 700; margin-bottom: 8px; }
+
+/* ===== 健康生活 ===== */
+.health-hero { background: linear-gradient(120deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%); }
+.health-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.habit-chip { border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all .15s; }
+.habit-chip:hover { border-color: #FFC9D6; }
+.habit-chip.done { background: #FFF0F5; border-color: #FFC9D6; color: #D6336C; font-weight: 700; }
+.flower-line { font-size: 12px; color: var(--muted); }
+.flower-line b { color: #D6336C; font-size: 14px; }
+.health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.habit-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 10px; border: 1px solid var(--line); border-radius: 14px; background: #fff; cursor: pointer; transition: all .15s; text-align: center; }
+.habit-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(31,36,55,.08); }
+.habit-card.done { background: #FFF0F5; border-color: #FFC9D6; }
+.habit-ic { font-size: 30px; }
+.habit-name { font-size: 13px; font-weight: 700; }
+.habit-state { font-size: 11px; color: var(--muted); }
+.habit-card.done .habit-state { color: #D6336C; font-weight: 700; }
+.habit-rm { position: absolute; top: 6px; right: 6px; border: none; background: transparent; color: #C0C6D4; cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 6px; }
+.habit-rm:hover { color: var(--red); background: #FDF0F0; }
+.habit-manage-row { display: flex; gap: 8px; }
+.habit-manage-row input { flex: 1; min-width: 0; }
+.habit-manage-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.habit-manage-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+.flower-wall { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.flower-day { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 56px; }
+.flower-date { font-size: 11px; color: var(--muted); }
+.flower-emojis { font-size: 13px; letter-spacing: -2px; }
+.flower-note { margin-top: 12px; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 560px) {
+  .countdown-row { grid-template-columns: 1fr; }
+  .health-grid { grid-template-columns: repeat(2, 1fr); }
+}

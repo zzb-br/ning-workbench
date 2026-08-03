@@ -516,6 +516,41 @@
       goalMetHtml = '<div class="goal-done">🎉 今日目标全部达成！太棒了！</div>';
     }
 
+    var examHtml = '';
+    if (set.examGuokao || set.examHenan) {
+      examHtml = '<div class="countdown-row">' +
+        countdownCard('🇨🇳 国考倒计时', set.examGuokao, S.daysUntil(set.examGuokao)) +
+        countdownCard('🏛️ 河南省考倒计时', set.examHenan, S.daysUntil(set.examHenan)) +
+        '</div>';
+    }
+
+    var tStats = S.taskStats(today);
+    var activeTasks = S.getTasks(today).filter(function (x) { return !x.done; });
+    var tasksHtml = '<div class="card"><div class="card-head"><h3>✅ 今日任务</h3>' +
+      '<a class="link" href="#/tasks">任务页 ›</a></div>' +
+      '<div class="task-add-row"><input type="text" data-add-task-dash placeholder="添加任务，如：行测 100 题" maxlength="60">' +
+      '<button class="btn btn-primary btn-sm" data-add-task-btn>＋ 添加</button></div>' +
+      '<div class="task-list">' +
+      (activeTasks.length ? activeTasks.map(taskItemDash).join('')
+        : emptyBlock('今天还没有任务', '添加任务，完成一项就去掉一项', '#/tasks', '去设置任务')) +
+      '</div>' +
+      (tStats.done ? '<div class="task-summary">今日已完成 ' + tStats.done + ' 项 🎉</div>' : '') +
+      '</div>';
+
+    var habits = S.getHealthHabits();
+    var flowersToday = S.flowersOn(today);
+    var flowersTotal = S.totalFlowers();
+    var healthHtml = '<div class="card"><div class="card-head"><h3>🌺 健康生活</h3>' +
+      '<a class="link" href="#/health">更多 ›</a></div>' +
+      '<div class="health-quick">' +
+      habits.slice(0, 4).map(function (h) {
+        var done = S.isHabitDone(h, today);
+        return '<button class="habit-chip' + (done ? ' done' : '') + '" data-toggle-habit="' + esc(h) + '">' + (done ? '🌺 ' : '') + esc(h) + '</button>';
+      }).join('') +
+      '</div>' +
+      '<div class="flower-line">今日已得 <b>' + flowersToday + '</b> 朵小红花 · 累计 <b>' + flowersTotal + '</b> 朵</div>' +
+      '</div>';
+
     app.innerHTML =
       '<section class="page">' +
       '<div class="hero card">' +
@@ -523,6 +558,8 @@
       '<p>' + fmtDateFull(today) + ' · 今天也要元气满满地学习呀</p></div>' +
       '<div class="hero-right"><div class="streak-badge">🔥 连续打卡 ' + streak + ' 天</div></div>' +
       '</div>' +
+
+      examHtml +
 
       '<div class="stats-grid">' +
       statCard('⏱️', '今日学习时长', fmtDuration(minutes), '目标 ' + fmtDuration(set.goalMinutes)) +
@@ -540,6 +577,8 @@
       '<div class="card"><div class="card-head"><h3>🥧 各模块累计时长</h3><a class="link" href="#/stats">更多 ›</a></div>' +
       '<div id="dashDonut"></div></div>' +
       '</div>' +
+
+      tasksHtml +
 
       '<div class="grid-2">' +
       '<div class="card"><div class="card-head"><h3>📈 近 7 天学习时长</h3></div><div class="chart" id="dashBar"></div></div>' +
@@ -559,6 +598,8 @@
       '</div></div>' +
       '</div>' +
 
+      healthHtml +
+
       (isEmpty ? '<div class="first-run">' +
         '<div class="empty-ic">👋</div>' +
         '<p>欢迎来到宁宁的考公工作台！这里会记录你的每一次学习、每一个模块的进度和错题。想先看看效果？可以载入一组示例数据。</p>' +
@@ -574,6 +615,38 @@
     });
     Charts.barChart($('#dashBar'), { labels: labels7, values: week.map(function (w) { return w.value; }), suffix: '分', color: '#5B6CF0' });
     Charts.barChart($('#dashBarQ'), { labels: labels7, values: weekQ.map(function (w) { return w.value; }), suffix: '题', color: '#2EC4B6' });
+
+    var dashAddInput = $('[data-add-task-dash]', app);
+    if (dashAddInput) {
+      function addDashTask() {
+        var txt = dashAddInput.value;
+        if (!String(txt).trim()) { toast('请输入任务内容', 'error'); return; }
+        S.addTask(txt, today);
+        renderAll();
+      }
+      $('[data-add-task-btn]', app).addEventListener('click', addDashTask);
+      dashAddInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') addDashTask(); });
+      $$('[data-done-task]', app).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          S.completeTask(btn.getAttribute('data-done-task'));
+          renderAll();
+          toast('任务完成 ✅');
+        });
+      });
+      $$('[data-toggle-habit]', app).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var h = btn.getAttribute('data-toggle-habit');
+          if (S.isHabitDone(h, today)) {
+            S.unlogHabit(h, today);
+            renderAll();
+          } else {
+            S.logHabit(h, today);
+            renderAll();
+            toast('奖励一朵小红花 🌺');
+          }
+        });
+      });
+    }
 
     var sampleBtn = $('[data-sample-now]', app);
     if (sampleBtn) {
@@ -902,6 +975,202 @@
     });
   }
 
+
+  /* ================= 每日任务 ================= */
+
+  function countdownCard(label, dateKey, days) {
+    var txt = '';
+    if (!dateKey) {
+      txt = '<div class="countdown-num">--</div><div class="countdown-date">未设置日期</div>';
+    } else if (days > 0) {
+      txt = '<div class="countdown-num">' + days + '<span class="countdown-unit">天</span></div>' +
+        '<div class="countdown-date">' + fmtDateCN(dateKey) + ' 笔试</div>';
+    } else if (days === 0) {
+      txt = '<div class="countdown-num today">就是今天！</div><div class="countdown-date">' + fmtDateCN(dateKey) + ' 加油！</div>';
+    } else {
+      txt = '<div class="countdown-num done">已结束</div><div class="countdown-date">' + fmtDateCN(dateKey) + '</div>';
+    }
+    return '<a class="countdown-card card" href="#/settings">' +
+      '<div class="countdown-label">' + label + '</div>' + txt +
+      '<div class="countdown-tip">点击可修改考试日期</div>' +
+      '</a>';
+  }
+
+  function taskItemDash(t) {
+    return '<div class="task-item">' +
+      '<span class="task-text">' + esc(t.text) + '</span>' +
+      '<button class="btn btn-sm btn-ok" data-done-task="' + t.id + '">✅ 完成</button>' +
+      '</div>';
+  }
+
+  function taskItemFull(t) {
+    return '<div class="task-item">' +
+      '<span class="task-text">' + esc(t.text) + '</span>' +
+      '<div class="task-item-actions">' +
+      '<button class="btn btn-sm btn-ok" data-done-task="' + t.id + '">✅ 完成</button>' +
+      '<button class="btn btn-sm btn-danger-ghost" data-del-task="' + t.id + '">🗑️ 删除</button>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function renderTasks() {
+    var today = S.todayKey();
+    var all = S.getTasks(today);
+    var active = all.filter(function (t) { return !t.done; }).sort(function (a, b) { return (a.createdAt || '').localeCompare(b.createdAt || ''); });
+    var done = all.filter(function (t) { return t.done; }).sort(function (a, b) { return (a.doneAt || '').localeCompare(b.doneAt || ''); });
+    var stats = S.taskStats(today);
+
+    app.innerHTML =
+      '<section class="page">' +
+      '<div class="stats-grid">' +
+      statCard('✅', '今日任务', stats.total + ' 项', '待完成 ' + active.length + ' 项') +
+      statCard('🎉', '今日已完成', stats.done + ' 项', '完成一项就去掉一项') +
+      '</div>' +
+      '<div class="card">' +
+      '<div class="card-head"><h3>📝 ' + fmtDateFull(today) + ' 的任务清单</h3></div>' +
+      '<div class="task-add-row"><input type="text" data-add-task placeholder="添加任务，如：行测 100 题 / 背 30 个成语" maxlength="60">' +
+      '<button class="btn btn-primary" data-add-task-btn>＋ 添加任务</button></div>' +
+      '<div class="task-list">' +
+      (active.length ? active.map(taskItemFull).join('')
+        : emptyBlock('没有待办任务', stats.done ? '今天的任务都完成啦，真棒 🎉' : '添加一个今天想完成的任务吧', null, '')) +
+      '</div>' +
+      (done.length ? '<details class="task-done-list"><summary>已完成 ' + done.length + ' 项（点击展开）</summary>' +
+        done.map(function (t) {
+          return '<div class="task-item done"><span class="task-text">✅ ' + esc(t.text) + '</span>' +
+            '<button class="btn btn-sm btn-danger-ghost" data-del-task="' + t.id + '">🗑️</button></div>';
+        }).join('') +
+        '</details>' : '') +
+      '</div>' +
+      '</section>';
+
+    $('[data-add-task-btn]', app).addEventListener('click', addTaskFromInput);
+    $('[data-add-task]', app).addEventListener('keydown', function (e) { if (e.key === 'Enter') addTaskFromInput(); });
+    $$('[data-done-task]', app).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        S.completeTask(btn.getAttribute('data-done-task'));
+        renderAll();
+        toast('任务完成 ✅');
+      });
+    });
+    $$('[data-del-task]', app).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (confirmDialog('确定删除这个任务吗？')) {
+          S.deleteTask(btn.getAttribute('data-del-task'));
+          renderAll();
+          toast('任务已删除');
+        }
+      });
+    });
+
+    function addTaskFromInput() {
+      var txt = $('[data-add-task]', app).value;
+      if (!String(txt).trim()) { toast('请输入任务内容', 'error'); return; }
+      S.addTask(txt, today);
+      renderAll();
+      toast('任务已添加 ✅');
+    }
+  }
+
+  /* ================= 健康生活（小红花） ================= */
+
+  function habitIcon(name) {
+    var map = { '健康饮食': '🥗', '按时睡觉': '🌙', '认真运动': '🏃', '努力学习': '📚', '多喝水': '💧', '保持好心情': '😊' };
+    return map[name] || '🌸';
+  }
+
+  function renderHealth() {
+    var today = S.todayKey();
+    var habits = S.getHealthHabits();
+    var tFlowers = S.flowersOn(today);
+    var total = S.totalFlowers();
+    var week = S.flowersSeries(7).reduce(function (s2, x) { return s2 + x.value; }, 0);
+    var wall = S.flowersSeries(14);
+
+    app.innerHTML =
+      '<section class="page">' +
+      '<div class="hero card health-hero">' +
+      '<div class="hero-left"><h2>🌺 健康生活</h2>' +
+      '<p>' + fmtDateFull(today) + ' · 好习惯带来好状态</p></div>' +
+      '<div class="hero-right"><div class="streak-badge">今日 🌺×' + tFlowers + '</div></div>' +
+      '</div>' +
+
+      '<div class="stats-grid">' +
+      statCard('🌺', '今日小红花', tFlowers + ' 朵', '完成一项得一朵') +
+      statCard('🏆', '累计小红花', total + ' 朵', '坚持的见证') +
+      statCard('📅', '近 7 天', week + ' 朵', '继续保持') +
+      statCard('💪', '习惯项目', habits.length + ' 项', '可自行增删') +
+      '</div>' +
+
+      '<div class="card">' +
+      '<div class="card-head"><h3>🌸 今日打卡</h3></div>' +
+      '<div class="health-grid">' +
+      habits.map(function (h) {
+        var done = S.isHabitDone(h, today);
+        return '<div class="habit-card' + (done ? ' done' : '') + '" data-toggle-habit="' + esc(h) + '">' +
+          '<button class="habit-rm" data-del-habit="' + esc(h) + '" title="删除习惯">✕</button>' +
+          '<span class="habit-ic">' + habitIcon(h) + '</span>' +
+          '<span class="habit-name">' + esc(h) + '</span>' +
+          '<span class="habit-state">' + (done ? '🌺 已打卡' : '点击打卡') + '</span>' +
+          '</div>';
+      }).join('') +
+      '</div>' +
+      (habits.length === 0 ? emptyBlock('还没有习惯项目', '下面可以添加，如：多喝水、不熬夜', null, '') : '') +
+      '<div class="habit-manage-row">' +
+      '<input type="text" data-add-habit placeholder="添加新习惯，如：多喝水" maxlength="20">' +
+      '<button class="btn btn-primary" data-add-habit-btn>＋ 添加</button>' +
+      '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+      '<div class="card-head"><h3>🌷 近 14 天小红花墙</h3></div>' +
+      '<div class="flower-wall">' +
+      wall.map(function (w) {
+        var fs = '';
+        for (var i = 0; i < Math.min(w.value, 8); i++) fs += '🌺';
+        if (w.value > 8) fs = '🌺×' + w.value;
+        if (!fs) fs = '·';
+        return '<div class="flower-day"><span class="flower-date">' + (S.parseKey(w.key).getMonth() + 1) + '/' + S.parseKey(w.key).getDate() + '</span><span class="flower-emojis">' + fs + '</span></div>';
+      }).join('') +
+      '</div>' +
+      '<div class="flower-note">每天按时打卡，小红花会越来越多～</div>' +
+      '</div>' +
+      '</section>';
+
+    $$('[data-toggle-habit]', app).forEach(function (box) {
+      box.addEventListener('click', function (e) {
+        if (e.target.getAttribute && e.target.getAttribute('data-del-habit')) return;
+        var h = box.getAttribute('data-toggle-habit');
+        if (S.isHabitDone(h, today)) {
+          S.unlogHabit(h, today);
+          renderAll();
+          toast('已取消今日打卡');
+        } else {
+          S.logHabit(h, today);
+          renderAll();
+          toast('奖励一朵小红花 🌺');
+        }
+      });
+    });
+    $$('[data-del-habit]', app).forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var name = btn.getAttribute('data-del-habit');
+        if (confirmDialog('删除习惯「' + name + '」？已得的小红花会保留。')) {
+          S.removeHabit(name);
+          renderAll();
+          toast('习惯已删除');
+        }
+      });
+    });
+    $('[data-add-habit-btn]', app).addEventListener('click', function () {
+      var name = $('[data-add-habit]', app).value;
+      if (!String(name).trim()) { toast('请输入习惯名称', 'error'); return; }
+      if (!S.addHabit(name)) { toast('该习惯已存在', 'error'); return; }
+      renderAll();
+      toast('习惯已添加 🌱');
+    });
+  }
+
   /* ================= 设置 ================= */
 
   function renderSettings() {
@@ -914,8 +1183,22 @@
       field('你的昵称', '<input type="text" name="name" value="' + esc(set.name) + '" placeholder="例如：宁宁">') +
       field('每日学习时长目标（分钟）', '<input type="number" name="goalMinutes" min="1" step="10" value="' + set.goalMinutes + '">') +
       field('每日刷题目标（题）', '<input type="number" name="goalQuestions" min="1" step="5" value="' + set.goalQuestions + '">') +
+      field('国考笔试日期（倒计时用）', '<input type="date" name="examGuokao" value="' + (set.examGuokao || '') + '">') +
+      field('河南省考笔试日期（倒计时用）', '<input type="date" name="examHenan" value="' + (set.examHenan || '') + '">') +
       '</div>' +
       '<div class="modal-actions"><button class="btn btn-primary" data-save-settings>保存设置</button></div>' +
+      '</div>' +
+
+      '<div class="card">' +
+      '<div class="card-head"><h3>🌺 健康习惯管理</h3></div>' +
+      '<div class="habit-manage-list">' +
+      S.getHealthHabits().map(function (h) {
+        return '<div class="habit-manage-item"><span>' + habitIcon(h) + ' ' + esc(h) + '</span>' +
+          '<button class="btn btn-sm btn-danger-ghost" data-del-habit-set="' + esc(h) + '">删除</button></div>';
+      }).join('') +
+      '</div>' +
+      '<div class="habit-manage-row"><input type="text" data-add-habit-set placeholder="添加新习惯" maxlength="20">' +
+      '<button class="btn btn-primary" data-add-habit-set-btn>＋ 添加</button></div>' +
       '</div>' +
 
       '<div class="card">' +
@@ -946,10 +1229,29 @@
       d.settings.name = $('[name=name]', app).value.trim() || '宁宁';
       d.settings.goalMinutes = Math.max(1, Number($('[name=goalMinutes]', app).value) || 120);
       d.settings.goalQuestions = Math.max(1, Number($('[name=goalQuestions]', app).value) || 100);
+      d.settings.examGuokao = $('[name=examGuokao]', app).value || '';
+      d.settings.examHenan = $('[name=examHenan]', app).value || '';
       S.save();
       renderSidebar();
       renderPageTitle();
       toast('设置已保存 ✅');
+    });
+    $('[data-add-habit-set-btn]', app).addEventListener('click', function () {
+      var name = $('[data-add-habit-set]', app).value;
+      if (!String(name).trim()) { toast('请输入习惯名称', 'error'); return; }
+      if (!S.addHabit(name)) { toast('该习惯已存在', 'error'); return; }
+      renderAll();
+      toast('习惯已添加 🌱');
+    });
+    $$('[data-del-habit-set]', app).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var name = btn.getAttribute('data-del-habit-set');
+        if (confirmDialog('删除习惯「' + name + '」？')) {
+          S.removeHabit(name);
+          renderAll();
+          toast('习惯已删除');
+        }
+      });
     });
     $('[data-export]', app).addEventListener('click', exportData);
     $('[data-import]', app).addEventListener('change', function (e) {
@@ -1163,6 +1465,8 @@
   var routeMeta = {
     dashboard: '工作台',
     daily: '每日记录',
+    tasks: '每日任务',
+    health: '健康生活',
     modules: '模块学习',
     mistakes: '错题本',
     stats: '统计',
@@ -1221,6 +1525,8 @@
     renderPageTitle();
     if (parsed.route === 'dashboard') renderDashboard();
     else if (parsed.route === 'daily') renderDaily();
+    else if (parsed.route === 'tasks') renderTasks();
+    else if (parsed.route === 'health') renderHealth();
     else if (parsed.route === 'modules') renderModules();
     else if (parsed.route === 'module') renderModule(parsed.params.id);
     else if (parsed.route === 'mistakes') renderMistakes();

@@ -79,9 +79,12 @@
   function defaultData() {
     return {
       version: 1,
-      settings: { name: '宁宁', goalMinutes: 120, goalQuestions: 100 },
+      settings: { name: '宁宁', goalMinutes: 120, goalQuestions: 100, examGuokao: '2026-11-28', examHenan: '2027-03-13' },
       records: [],
       mistakes: [],
+      dailyTasks: [],
+      healthLog: [],
+      healthHabits: ['健康饮食', '按时睡觉', '认真运动', '努力学习', '多喝水', '保持好心情'],
       createdAt: new Date().toISOString()
     };
   }
@@ -253,6 +256,100 @@
     });
   }
 
+
+  /* ---------------- 每日任务 ---------------- */
+  function getTasks(date) {
+    return data.dailyTasks.filter(function (t) { return t.date === date; });
+  }
+
+  function addTask(text, date) {
+    var t = { id: uid(), date: date || todayKey(), text: String(text).trim(), done: false, createdAt: new Date().toISOString() };
+    if (!t.text) return null;
+    data.dailyTasks.push(t);
+    save();
+    return t;
+  }
+
+  function completeTask(id) {
+    var t = Util.findBy(data.dailyTasks, function (x) { return x.id === id; });
+    if (t && !t.done) {
+      t.done = true;
+      t.doneAt = new Date().toISOString();
+      save();
+    }
+  }
+
+  function deleteTask(id) {
+    data.dailyTasks = data.dailyTasks.filter(function (t) { return t.id !== id; });
+    save();
+  }
+
+  function taskStats(date) {
+    var list = getTasks(date);
+    return { total: list.length, done: list.filter(function (t) { return t.done; }).length };
+  }
+
+  /* ---------------- 健康生活（小红花） ---------------- */
+  function getHealthHabits() {
+    return data.healthHabits.slice();
+  }
+
+  function addHabit(name) {
+    name = String(name).trim();
+    if (!name) return false;
+    if (data.healthHabits.indexOf(name) !== -1) return false;
+    data.healthHabits.push(name);
+    save();
+    return true;
+  }
+
+  function removeHabit(name) {
+    var i = data.healthHabits.indexOf(name);
+    if (i === -1) return;
+    data.healthHabits.splice(i, 1);
+    data.healthLog = data.healthLog.filter(function (h) { return h.habit !== name; });
+    save();
+  }
+
+  function isHabitDone(habit, date) {
+    var d = date || todayKey();
+    return Util.findBy(data.healthLog, function (h) { return h.habit === habit && h.date === d; }) ? true : false;
+  }
+
+  function logHabit(habit, date) {
+    var d = date || todayKey();
+    if (isHabitDone(habit, d)) return;
+    data.healthLog.push({ id: uid(), date: d, habit: habit, doneAt: new Date().toISOString() });
+    save();
+  }
+
+  function unlogHabit(habit, date) {
+    var d = date || todayKey();
+    data.healthLog = data.healthLog.filter(function (h) { return !(h.habit === habit && h.date === d); });
+    save();
+  }
+
+  function flowersOn(date) {
+    return data.healthLog.filter(function (h) { return h.date === date; }).length;
+  }
+
+  function totalFlowers() {
+    return data.healthLog.length;
+  }
+
+  function flowersSeries(n) {
+    return seriesForLastNDays(n, function (key) { return flowersOn(key); });
+  }
+
+  function daysUntil(key) {
+    if (!key) return null;
+    var t = new Date();
+    t.setHours(0, 0, 0, 0);
+    var d = parseKey(key);
+    d.setHours(0, 0, 0, 0);
+    return Math.round((d.getTime() - t.getTime()) / 86400000);
+  }
+
   /* ---------------- 导入导出 ---------------- */
   function exportJSON() {
     return JSON.stringify(data, null, 2);
@@ -336,6 +433,14 @@
         mastered: false
       }
     ].forEach(function (m) { addMistake(m); });
+
+    addTask('完成言语 20 题', t);
+    addTask('背 30 个成语', t);
+    var sampleTasks = data.dailyTasks;
+    if (sampleTasks.length) completeTask(sampleTasks[0].id);
+    logHabit('健康饮食', t);
+    logHabit('按时睡觉', t);
+    logHabit('认真运动', d(1));
   }
 
   function clearAll() {
@@ -485,6 +590,21 @@
     daysWithData: daysWithData,
     streakDays: streakDays,
     seriesForLastNDays: seriesForLastNDays,
+    getTasks: getTasks,
+    addTask: addTask,
+    completeTask: completeTask,
+    deleteTask: deleteTask,
+    taskStats: taskStats,
+    getHealthHabits: getHealthHabits,
+    addHabit: addHabit,
+    removeHabit: removeHabit,
+    isHabitDone: isHabitDone,
+    logHabit: logHabit,
+    unlogHabit: unlogHabit,
+    flowersOn: flowersOn,
+    totalFlowers: totalFlowers,
+    flowersSeries: flowersSeries,
+    daysUntil: daysUntil,
     moduleSummary: moduleSummary,
     exportJSON: exportJSON,
     importJSON: importJSON,
