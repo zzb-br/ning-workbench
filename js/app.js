@@ -485,6 +485,61 @@
     });
   }
 
+
+  /* ---- 任务完成庆祝 ---- */
+  var ENCOURAGE_MSGS = [
+    '太棒了！今天的任务全部完成，你是最棒的！🎉',
+    '任务清零！快去奖励一下努力了一天的自己～',
+    '今天也超级自律，为你骄傲！💪',
+    '所有任务都完成了，离上岸又近了一步！🌟',
+    '坚持的每一天都在发光，继续加油！✨',
+    '任务全搞定，今晚可以安心睡个好觉啦～🌙',
+    '哇，今天效率满分！记得也要好好休息哦～',
+    '又向目标前进了一大步，好样的！🚀'
+  ];
+
+  var TROPHY_SVG = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" style="width:190px;height:auto">' +
+    '<defs>' +
+    '<linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFE08A"/><stop offset="100%" stop-color="#F5B40E"/></linearGradient>' +
+    '<linearGradient id="tr" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FFC233"/><stop offset="100%" stop-color="#FF9F1C"/></linearGradient>' +
+    '</defs>' +
+    '<circle cx="110" cy="85" r="72" fill="#FFF6DC"/>' +
+    '<circle cx="110" cy="85" r="56" fill="#FFEEC2" opacity="0.65"/>' +
+    '<path d="M176 34 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z" fill="#FFD34D"/>' +
+    '<path d="M38 48 l2.5 7 7 2.5 -7 2.5 -2.5 7 -2.5 -7 -7 -2.5 7 -2.5 z" fill="#FFB020"/>' +
+    '<path d="M196 112 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2 z" fill="#FFD34D"/>' +
+    '<path d="M28 118 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" fill="#FFC233"/>' +
+    '<rect x="85" y="28" width="50" height="16" rx="8" fill="url(#tr)"/>' +
+    '<path d="M90 44 h40 v16 a20 20 0 0 1 -40 0 z" fill="url(#tg)"/>' +
+    '<path d="M95 68 h30 v26 a15 15 0 0 1 -30 0 z" fill="url(#tg)" opacity="0.9"/>' +
+    '<rect x="77" y="40" width="12" height="40" rx="6" fill="url(#tr)"/>' +
+    '<rect x="131" y="40" width="12" height="40" rx="6" fill="url(#tr)"/>' +
+    '<path d="M77 44 l-7 -9 M77 48 l-8 -4" stroke="#FF8F00" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+    '<path d="M143 44 l7 -9 M143 48 l8 -4" stroke="#FF8F00" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+    '<rect x="96" y="100" width="28" height="9" rx="4.5" fill="#E8A90C"/>' +
+    '<rect x="104" y="109" width="12" height="16" rx="4" fill="#E8A90C"/>' +
+    '</svg>';
+
+  function showEncourage() {
+    var el = document.getElementById('celebrate');
+    if (!el) return;
+    document.getElementById('celebrateSvg').innerHTML = TROPHY_SVG;
+    document.getElementById('celebrateMsg').textContent = ENCOURAGE_MSGS[Math.floor(Math.random() * ENCOURAGE_MSGS.length)];
+    var conf = document.getElementById('celebrateConfetti');
+    conf.innerHTML = '';
+    var colors = ['#FF7A59', '#FFB020', '#2EC4B6', '#5B6CF0', '#F472B6', '#34D399'];
+    for (var i = 0; i < 16; i++) {
+      var d = document.createElement('span');
+      d.className = 'confetti-dot';
+      d.style.left = (Math.random() * 96 + 2) + '%';
+      d.style.background = colors[i % colors.length];
+      d.style.animationDelay = (Math.random() * 1.6) + 's';
+      d.style.animationDuration = (1.6 + Math.random() * 1.2) + 's';
+      conf.appendChild(d);
+    }
+    el.hidden = false;
+  }
+
   /* ================= 工作台 ================= */
 
   function renderDashboard() {
@@ -630,6 +685,8 @@
         btn.addEventListener('click', function () {
           S.completeTask(btn.getAttribute('data-done-task'));
           renderAll();
+          var st = S.taskStats(today);
+          if (st.total > 0 && st.done === st.total) showEncourage();
           toast('任务完成 ✅');
         });
       });
@@ -1049,6 +1106,8 @@
       btn.addEventListener('click', function () {
         S.completeTask(btn.getAttribute('data-done-task'));
         renderAll();
+        var st = S.taskStats(today);
+        if (st.total > 0 && st.done === st.total) showEncourage();
         toast('任务完成 ✅');
       });
     });
@@ -1316,44 +1375,53 @@
     return (h > 0 ? p(h) + ':' : '') + p(m) + ':' + p(s);
   }
 
+  var timerClockEl = null;
+
   function renderTimerPop() {
     var pop = document.getElementById('timerPop');
     var btn = document.getElementById('timerBtn');
     if (!state.timer.moduleId) {
       pop.hidden = true;
       btn.textContent = '⏱️ 开始计时';
+      timerClockEl = null;
       return;
     }
     pop.hidden = false;
     btn.textContent = '⏱️ 学习中…';
     var mod = S.getModule(state.timer.moduleId);
-    pop.innerHTML =
-      '<div class="timer-pop-head">' +
-      '<span>' + (mod ? mod.icon + ' ' + esc(mod.name) : '⏱️ 学习') + '</span>' +
-      '<span class="timer-clock">' + fmtClock(currentElapsedMs()) + '</span>' +
-      '</div>' +
-      '<div class="timer-pop-actions">' +
-      '<button class="btn btn-sm btn-ghost" data-pause>' + (state.timer.paused ? '▶️ 继续' : '⏸️ 暂停') + '</button>' +
-      '<button class="btn btn-sm btn-primary" data-finish>✅ 完成</button>' +
-      '</div>';
-
-    $('[data-pause]', pop).addEventListener('click', function () {
-      if (state.timer.paused) {
-        state.timer.startTs = Date.now();
-        state.timer.running = true;
-        state.timer.paused = false;
-        startTicking();
-      } else {
-        state.timer.accumulatedMs += Date.now() - state.timer.startTs;
-        state.timer.running = false;
-        state.timer.paused = true;
-        if (state.timer.tick) clearInterval(state.timer.tick);
-        state.timer.tick = null;
-      }
-      S.saveTimerSession(timerSession());
-      renderTimerPop();
-    });
-    $('[data-finish]', pop).addEventListener('click', finishTimer);
+    if (!timerClockEl || pop.getAttribute('data-module') !== state.timer.moduleId) {
+      pop.setAttribute('data-module', state.timer.moduleId);
+      pop.innerHTML =
+        '<div class="timer-pop-head">' +
+        '<span>' + (mod ? mod.icon + ' ' + esc(mod.name) : '⏱️ 学习') + '</span>' +
+        '<span class="timer-clock">' + fmtClock(currentElapsedMs()) + '</span>' +
+        '</div>' +
+        '<div class="timer-pop-actions">' +
+        '<button class="btn btn-sm btn-ghost" data-pause>' + (state.timer.paused ? '▶️ 继续' : '⏸️ 暂停') + '</button>' +
+        '<button class="btn btn-sm btn-primary" data-finish>✅ 完成</button>' +
+        '</div>';
+      timerClockEl = $('.timer-clock', pop);
+      $('[data-pause]', pop).addEventListener('click', function () {
+        if (state.timer.paused) {
+          state.timer.startTs = Date.now();
+          state.timer.running = true;
+          state.timer.paused = false;
+          startTicking();
+        } else {
+          state.timer.accumulatedMs += Date.now() - state.timer.startTs;
+          state.timer.running = false;
+          state.timer.paused = true;
+          if (state.timer.tick) clearInterval(state.timer.tick);
+          state.timer.tick = null;
+        }
+        S.saveTimerSession(timerSession());
+        renderTimerPop();
+      });
+      $('[data-finish]', pop).addEventListener('click', finishTimer);
+    }
+    if (timerClockEl) timerClockEl.textContent = fmtClock(currentElapsedMs());
+    var pauseBtn = pop.querySelector('[data-pause]');
+    if (pauseBtn) pauseBtn.textContent = state.timer.paused ? '▶️ 继续' : '⏸️ 暂停';
   }
 
   function timerSession() {
@@ -1604,6 +1672,9 @@
     S.load();
     initTimer();
 
+    document.getElementById('celebrateBtn').addEventListener('click', function () {
+      document.getElementById('celebrate').hidden = true;
+    });
     document.getElementById('modalBackdrop').addEventListener('click', function (e) {
       if (e.target === document.getElementById('modalBackdrop')) closeModal();
     });
@@ -1613,9 +1684,15 @@
     window.addEventListener('hashchange', router);
 
     var resizeTimer = null;
+    var lastViewportW = window.innerWidth;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(router, 250);
+      resizeTimer = setTimeout(function () {
+        var w = window.innerWidth;
+        if (Math.abs(w - lastViewportW) < 24) return;
+        lastViewportW = w;
+        router();
+      }, 400);
     });
 
     renderAll();
