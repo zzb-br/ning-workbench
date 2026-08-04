@@ -645,3 +645,5 @@ body.modal-open { overflow: hidden; }
 .reminder-bar[hidden] { display: none; }
 .reminder-bar .reminder-close { border: none; background: rgba(255,255,255,.22); color: #fff; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 12px; flex: none; }
 .reminder-bar .reminder-close:hover { background: rgba(255,255,255,.35); }
+
+.nav-sep { height: 1px; background: var(--line); margin: 10px 8px; }
