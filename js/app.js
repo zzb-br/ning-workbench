@@ -227,10 +227,10 @@
       '</div>';
   }
 
-  function progressRow(label, val, goal, unit, pct) {
+  function progressRow(label, val, goal, unit, pct, color) {
     return '<div class="goal-row">' +
       '<div class="goal-line"><span>' + label + '</span><span>' + val + ' / ' + goal + ' ' + unit + '</span></div>' +
-      '<div class="progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="progress"><div class="progress-fill" style="width:' + pct + '%' + (color ? ';background:' + color : '') + '"></div></div>' +
       '</div>';
   }
 
@@ -540,6 +540,92 @@
     el.hidden = false;
   }
 
+
+  /* ---- 主题 ---- */
+  var THEMES = [
+    { id: 'default', name: '默认', icon: '🌈', bg: 'linear-gradient(135deg,#F4F6FB,#FFFFFF)', line: '#E7EAF2' },
+    { id: 'fresh', name: '清新', icon: '🌿', bg: 'linear-gradient(135deg,#F0FAF6,#FFFFFF)', line: '#D9EDE6' },
+    { id: 'literary', name: '文艺', icon: '📖', bg: 'linear-gradient(135deg,#F6F1E7,#FFFDF7)', line: '#E5DBC6' },
+    { id: 'energy', name: '活力', icon: '☀️', bg: 'linear-gradient(135deg,#FFF6F0,#FFFFFF)', line: '#F2DED2' },
+    { id: 'dark', name: '暗夜', icon: '🌙', bg: 'linear-gradient(135deg,#15171C,#1E2128)', line: '#2C313B' }
+  ];
+
+  function cssVar(name, fallback) {
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+      return (v && v.trim()) ? v.trim() : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function applyTheme(theme) {
+    var t = theme || 'default';
+    if (t === 'default') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
+  }
+
+  /* ---- 任务提醒闹钟 ---- */
+  var audioCtx = null;
+
+  function playBeep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var now = audioCtx.currentTime;
+      for (var i = 0; i < 3; i++) {
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        var t0 = now + i * 0.35;
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.3);
+      }
+    } catch (e) {}
+  }
+
+  function showReminderAlert(text) {
+    var bar = document.getElementById('reminderBar');
+    if (!bar) return;
+    document.getElementById('reminderBarText').textContent = '⏰ 该完成任务啦：' + text;
+    bar.hidden = false;
+    clearTimeout(showReminderAlert._t);
+    showReminderAlert._t = setTimeout(function () { bar.hidden = true; }, 10000);
+  }
+
+  function fireReminder(task) {
+    showReminderAlert(task.text);
+    playBeep();
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('宁宁的考公工作台', { body: '⏰ 该完成任务啦：' + task.text, tag: task.id });
+      }
+    } catch (e) {}
+  }
+
+  function requestNotifyPermission() {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    } catch (e) {}
+  }
+
+  function checkReminders() {
+    var now = new Date();
+    var cur = Util.pad(now.getHours(), 2) + ':' + Util.pad(now.getMinutes(), 2);
+    S.getTasks(S.todayKey()).forEach(function (t) {
+      if (t.remind && !t.reminded && !t.done && t.remind <= cur) {
+        S.markReminded(t.id);
+        fireReminder(t);
+      }
+    });
+  }
+
   /* ================= 工作台 ================= */
 
   function renderDashboard() {
@@ -626,8 +712,8 @@
       '<div class="grid-2">' +
       '<div class="card"><div class="card-head"><h3>🎯 今日目标进度</h3></div>' +
       '<div class="goal-rows">' +
-      progressRow('学习时长', minutes, set.goalMinutes, '分钟', goalMinPct) +
-      progressRow('刷题数量', questions, set.goalQuestions, '题', goalQPct) +
+      progressRow('学习时长', minutes, set.goalMinutes, '分钟', goalMinPct, cssVar('--primary', '#5B6CF0')) +
+      progressRow('刷题数量', questions, set.goalQuestions, '题', goalQPct, cssVar('--teal', '#2EC4B6')) +
       '</div>' + goalMetHtml + '</div>' +
       '<div class="card"><div class="card-head"><h3>🥧 各模块累计时长</h3><a class="link" href="#/stats">更多 ›</a></div>' +
       '<div id="dashDonut"></div></div>' +
@@ -668,8 +754,8 @@
       values: mods.map(function (m) { return m.minutes; }),
       colors: PALETTE
     });
-    Charts.barChart($('#dashBar'), { labels: labels7, values: week.map(function (w) { return w.value; }), suffix: '分', color: '#5B6CF0' });
-    Charts.barChart($('#dashBarQ'), { labels: labels7, values: weekQ.map(function (w) { return w.value; }), suffix: '题', color: '#2EC4B6' });
+    Charts.barChart($('#dashBar'), { labels: labels7, values: week.map(function (w) { return w.value; }), suffix: '分', color: cssVar('--primary', '#5B6CF0') });
+    Charts.barChart($('#dashBarQ'), { labels: labels7, values: weekQ.map(function (w) { return w.value; }), suffix: '题', color: cssVar('--teal', '#2EC4B6') });
 
     var dashAddInput = $('[data-add-task-dash]', app);
     if (dashAddInput) {
@@ -893,13 +979,13 @@
       labels: series.map(function (s) { return S.parseKey(s.key).getDate() + '日'; }),
       values: series.map(function (s) { return s.value; }),
       suffix: '分',
-      color: '#5B6CF0'
+      color: cssVar('--primary', '#5B6CF0')
     });
     Charts.lineChart($('#modLine'), {
       labels: accSeries.map(function (s) { return S.parseKey(s.key).getDate() + '日'; }),
       values: accSeries.map(function (s) { return s.value; }),
       suffix: '%',
-      color: '#2EC4B6'
+      color: cssVar('--teal', '#2EC4B6')
     });
     $('[data-add-record]', app).addEventListener('click', function () { openRecordModal(S.todayKey(), id); });
     var qmBtn = $('[data-quick-mistake]', app);
@@ -1017,8 +1103,8 @@
       '</section>';
 
     Charts.heatmap($('#heatmap'), { days: heat.map(function (h) { return h.key; }), values: heat.map(function (h) { return h.value; }) });
-    Charts.barChart($('#statBar'), { labels: labels14, values: series14.map(function (s) { return s.value; }), suffix: '分', color: '#5B6CF0' });
-    Charts.barChart($('#statBarQ'), { labels: labels14, values: seriesQ.map(function (s) { return s.value; }), suffix: '题', color: '#2EC4B6' });
+    Charts.barChart($('#statBar'), { labels: labels14, values: series14.map(function (s) { return s.value; }), suffix: '分', color: cssVar('--primary', '#5B6CF0') });
+    Charts.barChart($('#statBarQ'), { labels: labels14, values: seriesQ.map(function (s) { return s.value; }), suffix: '题', color: cssVar('--teal', '#2EC4B6') });
     Charts.donutChart($('#statDonut'), {
       labels: mods.map(function (m) { return m.module.name; }),
       values: mods.map(function (m) { return m.minutes; }),
@@ -1056,6 +1142,7 @@
   function taskItemDash(t) {
     return '<div class="task-item">' +
       '<span class="task-text">' + esc(t.text) + '</span>' +
+      (t.remind ? '<span class="chip chip-time">⏰ ' + esc(t.remind) + '</span>' : '') +
       '<button class="btn btn-sm btn-ok" data-done-task="' + t.id + '">✅ 完成</button>' +
       '</div>';
   }
@@ -1063,6 +1150,7 @@
   function taskItemFull(t) {
     return '<div class="task-item">' +
       '<span class="task-text">' + esc(t.text) + '</span>' +
+      (t.remind ? '<span class="chip chip-time">⏰ ' + esc(t.remind) + '</span>' : '') +
       '<div class="task-item-actions">' +
       '<button class="btn btn-sm btn-ok" data-done-task="' + t.id + '">✅ 完成</button>' +
       '<button class="btn btn-sm btn-danger-ghost" data-del-task="' + t.id + '">🗑️ 删除</button>' +
@@ -1086,6 +1174,7 @@
       '<div class="card">' +
       '<div class="card-head"><h3>📝 ' + fmtDateFull(today) + ' 的任务清单</h3></div>' +
       '<div class="task-add-row"><input type="text" data-add-task placeholder="添加任务，如：行测 100 题 / 背 30 个成语" maxlength="60">' +
+      '<input type="time" data-add-remind title="提醒时间（可选）">' +
       '<button class="btn btn-primary" data-add-task-btn>＋ 添加任务</button></div>' +
       '<div class="task-list">' +
       (active.length ? active.map(taskItemFull).join('')
@@ -1124,9 +1213,11 @@
     function addTaskFromInput() {
       var txt = $('[data-add-task]', app).value;
       if (!String(txt).trim()) { toast('请输入任务内容', 'error'); return; }
-      S.addTask(txt, today);
+      var rm = $('[data-add-remind]', app).value || '';
+      S.addTask(txt, today, rm);
+      if (rm) requestNotifyPermission();
       renderAll();
-      toast('任务已添加 ✅');
+      toast(rm ? ('任务已添加，将在 ' + rm + ' 提醒 ⏰') : '任务已添加 ✅');
     }
   }
 
@@ -1249,6 +1340,19 @@
       '</div>' +
 
       '<div class="card">' +
+      '<div class="card-head"><h3>🎨 主题</h3></div>' +
+      '<div class="theme-grid">' +
+      THEMES.map(function (t) {
+        return '<div class="theme-item' + (set.theme === t.id ? ' active' : '') + '" data-theme-pick="' + t.id + '">' +
+          '<span class="theme-check">' + (set.theme === t.id ? '✓' : '') + '</span>' +
+          '<span class="theme-swatch" style="background:' + t.bg + ';border:1px solid ' + t.line + '"></span>' +
+          '<span class="theme-name">' + t.icon + ' ' + t.name + '</span>' +
+          '</div>';
+      }).join('') +
+      '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
       '<div class="card-head"><h3>🌺 健康习惯管理</h3></div>' +
       '<div class="habit-manage-list">' +
       S.getHealthHabits().map(function (h) {
@@ -1294,6 +1398,16 @@
       renderSidebar();
       renderPageTitle();
       toast('设置已保存 ✅');
+    });
+    $$('[data-theme-pick]', app).forEach(function (item) {
+      item.addEventListener('click', function () {
+        var d = S.load();
+        d.settings.theme = item.getAttribute('data-theme-pick');
+        S.save();
+        applyTheme(d.settings.theme);
+        renderAll();
+        toast('主题已切换 🎨');
+      });
     });
     $('[data-add-habit-set-btn]', app).addEventListener('click', function () {
       var name = $('[data-add-habit-set]', app).value;
@@ -1645,9 +1759,9 @@
       '<div class="goal-card">' +
       '<div class="goal-card-title">🎯 今日目标' + (allDone ? ' · 达成 🎉' : '') + '</div>' +
       '<div class="goal-line"><span>学习时长</span><span>' + minutes + '/' + set.goalMinutes + ' 分钟</span></div>' +
-      '<div class="progress"><div class="progress-fill" style="width:' + pMin + '%;background:#5B6CF0"></div></div>' +
+      '<div class="progress"><div class="progress-fill" style="width:' + pMin + '%;background:' + cssVar('--primary', '#5B6CF0') + '"></div></div>' +
       '<div class="goal-line"><span>刷题</span><span>' + questions + '/' + set.goalQuestions + ' 题</span></div>' +
-      '<div class="progress"><div class="progress-fill" style="width:' + pQ + '%;background:#2EC4B6"></div></div>' +
+      '<div class="progress"><div class="progress-fill" style="width:' + pQ + '%;background:' + cssVar('--teal', '#2EC4B6') + '"></div></div>' +
       '</div>';
   }
 
@@ -1671,6 +1785,12 @@
   function init() {
     S.load();
     initTimer();
+    applyTheme(S.load().settings.theme || 'default');
+    document.getElementById('reminderBarClose').addEventListener('click', function () {
+      document.getElementById('reminderBar').hidden = true;
+    });
+    setInterval(checkReminders, 20000);
+    checkReminders();
 
     document.getElementById('celebrateBtn').addEventListener('click', function () {
       document.getElementById('celebrate').hidden = true;

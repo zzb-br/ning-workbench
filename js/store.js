@@ -79,7 +79,7 @@
   function defaultData() {
     return {
       version: 1,
-      settings: { name: '宁宁', goalMinutes: 120, goalQuestions: 100, examGuokao: '2026-11-28', examHenan: '2027-03-13' },
+      settings: { name: '宁宁', goalMinutes: 120, goalQuestions: 100, examGuokao: '2026-11-28', examHenan: '2027-03-13', theme: 'default' },
       records: [],
       mistakes: [],
       dailyTasks: [],
@@ -262,12 +262,25 @@
     return data.dailyTasks.filter(function (t) { return t.date === date; });
   }
 
-  function addTask(text, date) {
-    var t = { id: uid(), date: date || todayKey(), text: String(text).trim(), done: false, createdAt: new Date().toISOString() };
+  function addTask(text, date, remind) {
+    var t = {
+      id: uid(),
+      date: date || todayKey(),
+      text: String(text).trim(),
+      remind: String(remind || '').trim(),
+      reminded: false,
+      done: false,
+      createdAt: new Date().toISOString()
+    };
     if (!t.text) return null;
     data.dailyTasks.push(t);
     save();
     return t;
+  }
+
+  function markReminded(id) {
+    var t = Util.findBy(data.dailyTasks, function (x) { return x.id === id; });
+    if (t) { t.reminded = true; save(); }
   }
 
   function completeTask(id) {
@@ -594,6 +607,7 @@
     addTask: addTask,
     completeTask: completeTask,
     deleteTask: deleteTask,
+    markReminded: markReminded,
     taskStats: taskStats,
     getHealthHabits: getHealthHabits,
     addHabit: addHabit,
