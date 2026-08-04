@@ -79,7 +79,7 @@
   function defaultData() {
     return {
       version: 1,
-      settings: { name: '宁宁', goalMinutes: 120, goalQuestions: 100, examGuokao: '2026-11-28', examHenan: '2027-03-13', theme: 'default' },
+      settings: { name: '宁宁', goalMinutes: 120, goalQuestions: 100, examGuokao: '2026-11-28', examHenan: '2027-03-13', theme: 'default', stickers: [] },
       records: [],
       mistakes: [],
       dailyTasks: [],
@@ -363,6 +363,29 @@
     return Math.round((d.getTime() - t.getTime()) / 86400000);
   }
 
+
+  /* ---------------- 页面贴纸 ---------------- */
+  function getStickers() {
+    return (data.settings.stickers || []).slice();
+  }
+
+  function addSticker(blob, cb) {
+    var id = 'stk-' + uid();
+    putImage(id, blob, function (err) {
+      if (err) { if (cb) cb(err); return; }
+      data.settings.stickers = data.settings.stickers || [];
+      data.settings.stickers.push(id);
+      save();
+      if (cb) cb(null, id);
+    });
+  }
+
+  function removeSticker(id) {
+    data.settings.stickers = (data.settings.stickers || []).filter(function (x) { return x !== id; });
+    save();
+    deleteImage(id, function () {});
+  }
+
   /* ---------------- 导入导出 ---------------- */
   function exportJSON() {
     return JSON.stringify(data, null, 2);
@@ -617,6 +640,9 @@
     unlogHabit: unlogHabit,
     flowersOn: flowersOn,
     totalFlowers: totalFlowers,
+    getStickers: getStickers,
+    addSticker: addSticker,
+    removeSticker: removeSticker,
     flowersSeries: flowersSeries,
     daysUntil: daysUntil,
     moduleSummary: moduleSummary,

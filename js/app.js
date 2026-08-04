@@ -547,7 +547,13 @@
     { id: 'fresh', name: '清新', icon: '🌿', bg: 'linear-gradient(135deg,#F0FAF6,#FFFFFF)', line: '#D9EDE6' },
     { id: 'literary', name: '文艺', icon: '📖', bg: 'linear-gradient(135deg,#F6F1E7,#FFFDF7)', line: '#E5DBC6' },
     { id: 'energy', name: '活力', icon: '☀️', bg: 'linear-gradient(135deg,#FFF6F0,#FFFFFF)', line: '#F2DED2' },
-    { id: 'dark', name: '暗夜', icon: '🌙', bg: 'linear-gradient(135deg,#15171C,#1E2128)', line: '#2C313B' }
+    { id: 'dark', name: '暗夜', icon: '🌙', bg: 'linear-gradient(135deg,#15171C,#1E2128)', line: '#2C313B' },
+    { id: 'linedog', name: '线条小狗', icon: '🐕', bg: 'linear-gradient(135deg,#FFFFFF,#FFF7D6)', line: '#E6E6E6' },
+    { id: 'cinnamon', name: '玉桂狗', icon: '⛅', bg: 'linear-gradient(135deg,#E8F6FF,#FFFFFF)', line: '#CFE8F7' },
+    { id: 'melody', name: '美乐蒂', icon: '🎀', bg: 'linear-gradient(135deg,#FFF0F3,#FFFFFF)', line: '#F5D3DC' },
+    { id: 'pony', name: '小马宝莉', icon: '🦄', bg: 'linear-gradient(135deg,#F3EEFF,#FFFFFF)', line: '#E4DBF5' },
+    { id: 'ruby', name: '露比', icon: '💎', bg: 'linear-gradient(135deg,#FFF3F0,#FFFFFF)', line: '#F4D9D2' },
+    { id: 'chiikawa', name: '吉伊卡哇', icon: '🍙', bg: 'linear-gradient(135deg,#FFF9E8,#FFFFFF)', line: '#F0E6C8' }
   ];
 
   function cssVar(name, fallback) {
@@ -600,6 +606,7 @@
   function fireReminder(task) {
     showReminderAlert(task.text);
     playBeep();
+    try { if (navigator.vibrate) navigator.vibrate([200, 120, 200, 120, 400]); } catch (e) {}
     try {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('宁宁的考公工作台', { body: '⏰ 该完成任务啦：' + task.text, tag: task.id });
@@ -615,15 +622,97 @@
     } catch (e) {}
   }
 
+  function scheduleMobileReminder(task) {
+    try {
+      if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+      var parts = String(task.remind).split(':');
+      var d = new Date();
+      d.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+      var at = d.getTime();
+      if (at <= Date.now()) return;
+      navigator.serviceWorker.controller.postMessage({
+        type: 'schedule-reminder',
+        title: '宁宁的考公工作台',
+        body: '⏰ 该完成任务啦：' + task.text,
+        tag: task.id,
+        at: at
+      });
+    } catch (e) {}
+  }
+
   function checkReminders() {
     var now = new Date();
     var cur = Util.pad(now.getHours(), 2) + ':' + Util.pad(now.getMinutes(), 2);
     S.getTasks(S.todayKey()).forEach(function (t) {
-      if (t.remind && !t.reminded && !t.done && t.remind <= cur) {
-        S.markReminded(t.id);
-        fireReminder(t);
+      if (t.remind && !t.reminded && !t.done) {
+        if (t.remind <= cur) {
+          S.markReminded(t.id);
+          fireReminder(t);
+        } else {
+          scheduleMobileReminder(t);
+        }
       }
     });
+  }
+
+
+  /* ---- 页面贴纸 ---- */
+  function defaultStickerSvg() {
+    var p = cssVar('--primary', '#5B6CF0');
+    var t = cssVar('--teal', '#2EC4B6');
+    var a = cssVar('--amber', '#FFB020');
+    var c = cssVar('--coral', '#FF7A59');
+    return [
+      '<svg viewBox="0 0 24 24" fill="' + a + '"><path d="M12 2l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.3 5.9 20.3l1.3-6.7-5-4.6 6.8-.8z"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="' + c + '"><path d="M12 21s-7.5-4.6-10-9.2C.6 8.6 2.6 5 6 5c2 0 3.5 1 4 2.4C10.5 6 12 5 14 5c3.4 0 5.4 3.6 4 6.8-2.5 4.6-10 9.2-10 9.2z"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="#FFFFFF" opacity="0.95"><path d="M6 19a4.5 4.5 0 0 1-.4-9A5.5 5.5 0 0 1 16.5 7.5 4 4 0 0 1 17 15.6c-.3.1-.7.2-1 .4H6z"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="' + t + '"><path d="M12 3c1.8 0 3.2 1.4 3.2 3.2 2.7.3 4.8 2.6 4.8 5.4 0 3-2.4 5.4-5.4 5.4H9.4c-2.8 0-5-2.2-5-5 0-2.4 1.7-4.4 3.9-4.9C8.7 4.7 10.2 3 12 3z"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="' + p + '"><path d="M4 13c0-2 1.5-3.5 3.5-3.5.4-2 2-3.5 4.1-3.5 2.3 0 4.1 1.8 4.1 4 0 .3 0 .6-.1.9 1.4.4 2.4 1.7 2.4 3.2 0 1.9-1.5 3.4-3.4 3.4H8C5.8 17.5 4 15.7 4 13z"/></svg>'
+    ];
+  }
+
+  function positionSticker(el, idx) {
+    var spots = [
+      { left: '3%', top: '10%', size: 46, delay: '0s' },
+      { left: '86%', top: '12%', size: 38, delay: '.6s' },
+      { left: '4%', bottom: '8%', size: 34, delay: '1.1s' },
+      { left: '80%', bottom: '12%', size: 44, delay: '.3s' }
+    ];
+    var sp = spots[idx % spots.length];
+    el.style.left = sp.left;
+    el.style.top = sp.top;
+    el.style.bottom = sp.bottom || '';
+    el.style.width = sp.size + 'px';
+    el.style.height = sp.size + 'px';
+    el.style.animationDelay = sp.delay;
+  }
+
+  function renderHeroStickers() {
+    var box = document.getElementById('heroStickers');
+    if (!box) return;
+    box.innerHTML = '';
+    var stickers = S.getStickers();
+    if (stickers.length) {
+      stickers.forEach(function (id, idx) {
+        S.getImage(id, function (err, blob) {
+          if (err || !blob) return;
+          var img = document.createElement('img');
+          img.className = 'sticker-float';
+          img.src = makeObjUrl(blob);
+          img.alt = '贴纸';
+          positionSticker(img, idx);
+          box.appendChild(img);
+        });
+      });
+    } else {
+      defaultStickerSvg().forEach(function (svg, idx) {
+        var span = document.createElement('span');
+        span.className = 'sticker-float svg';
+        span.innerHTML = svg;
+        positionSticker(span, idx);
+        box.appendChild(span);
+      });
+    }
   }
 
   /* ================= 工作台 ================= */
@@ -698,6 +787,7 @@
       '<div class="hero-left"><h2>' + greet + '，' + esc(set.name) + ' 🌈</h2>' +
       '<p>' + fmtDateFull(today) + ' · 今天也要元气满满地学习呀</p></div>' +
       '<div class="hero-right"><div class="streak-badge">🔥 连续打卡 ' + streak + ' 天</div></div>' +
+      '<div class="hero-stickers" id="heroStickers"></div>' +
       '</div>' +
 
       examHtml +
@@ -791,6 +881,7 @@
       });
     }
 
+    renderHeroStickers();
     var sampleBtn = $('[data-sample-now]', app);
     if (sampleBtn) {
       sampleBtn.addEventListener('click', function () {
@@ -1214,8 +1305,8 @@
       var txt = $('[data-add-task]', app).value;
       if (!String(txt).trim()) { toast('请输入任务内容', 'error'); return; }
       var rm = $('[data-add-remind]', app).value || '';
-      S.addTask(txt, today, rm);
-      if (rm) requestNotifyPermission();
+      var nt = S.addTask(txt, today, rm);
+      if (rm) { requestNotifyPermission(); if (nt) scheduleMobileReminder(nt); }
       renderAll();
       toast(rm ? ('任务已添加，将在 ' + rm + ' 提醒 ⏰') : '任务已添加 ✅');
     }
@@ -1353,6 +1444,19 @@
       '</div>' +
 
       '<div class="card">' +
+      '<div class="card-head"><h3>🖼️ 页面贴纸（自定义）</h3></div>' +
+      '<p class="muted">上传透明底 PNG 贴纸（如你喜欢的卡通形象），会显示在工作台首页；图片只存在当前浏览器本地。</p>' +
+      '<label class="btn file-btn">＋ 上传贴纸<input type="file" accept="image/*" multiple data-sticker-input hidden></label>' +
+      '<div class="sticker-manage-list">' +
+      S.getStickers().map(function (id) {
+        return '<div class="sticker-manage-item" data-sticker-id="' + id + '">' +
+          '<span class="sticker-thumb" data-sticker-thumb="' + id + '"></span>' +
+          '<button class="btn btn-sm btn-danger-ghost" data-del-sticker="' + id + '">删除</button></div>';
+      }).join('') +
+      '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
       '<div class="card-head"><h3>🌺 健康习惯管理</h3></div>' +
       '<div class="habit-manage-list">' +
       S.getHealthHabits().map(function (h) {
@@ -1379,6 +1483,7 @@
       '<div class="card-head"><h3>📖 使用小贴士</h3></div>' +
       '<ul class="tips">' +
       '<li>⏱️ 学习时点击右上角「开始计时」，结束时自动生成学习记录。</li>' +
+      '<li>📱 手机提醒：用手机浏览器打开网址 → 允许通知 → 菜单里「添加到主屏幕」；安卓网页关闭也能到点通知，iPhone 仅页面打开时提醒。</li>' +
       '<li>📅 「每日记录」页可以按日期查看每天做了什么，日历上的小圆点表示当天有打卡。</li>' +
       '<li>📝 做错的题及时记进「错题本」，定期复习并标记掌握。</li>' +
       '<li>📷 错题支持拍照/上传照片，照片存在浏览器本地；导出 JSON 只包含文字不包含照片。</li>' +
@@ -1426,6 +1531,34 @@
         }
       });
     });
+    var stInput = $('[data-sticker-input]', app);
+    if (stInput) {
+      stInput.addEventListener('change', function () {
+        var files = stInput.files;
+        for (var i = 0; i < files.length; i++) {
+          (function (f) {
+            if (!/^image\//.test(f.type)) return;
+            S.addSticker(f, function () { renderAll(); });
+          })(files[i]);
+        }
+        stInput.value = '';
+      });
+      $$('[data-sticker-thumb]', app).forEach(function (el) {
+        var id = el.getAttribute('data-sticker-thumb');
+        S.getImage(id, function (err, blob) {
+          if (!err && blob) el.innerHTML = '<img src="' + makeObjUrl(blob) + '" alt="贴纸">';
+        });
+      });
+      $$('[data-del-sticker]', app).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (confirmDialog('删除这张贴纸？')) {
+            S.removeSticker(btn.getAttribute('data-del-sticker'));
+            renderAll();
+            toast('贴纸已删除');
+          }
+        });
+      });
+    }
     $('[data-export]', app).addEventListener('click', exportData);
     $('[data-import]', app).addEventListener('change', function (e) {
       var f = e.target.files[0];
@@ -1786,6 +1919,9 @@
     S.load();
     initTimer();
     applyTheme(S.load().settings.theme || 'default');
+    if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
     document.getElementById('reminderBarClose').addEventListener('click', function () {
       document.getElementById('reminderBar').hidden = true;
     });
