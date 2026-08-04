@@ -647,3 +647,137 @@ body.modal-open { overflow: hidden; }
 .reminder-bar .reminder-close:hover { background: rgba(255,255,255,.35); }
 
 .nav-sep { height: 1px; background: var(--line); margin: 10px 8px; }
+
+
+/* ===== 卡通主题 ===== */
+:root[data-theme="linedog"] {
+  --bg: #FFFFFF;
+  --card: #FFFFFF;
+  --ink: #222222;
+  --muted: #8A8A8A;
+  --line: #E6E6E6;
+  --primary: #2B2B2B;
+  --primary-soft: #FFF7D6;
+  --teal: #FFC107;
+  --amber: #FFC107;
+  --coral: #FF6B4A;
+  --purple: #B39DDB;
+  --red: #E5484D;
+  --green: #6FCF97;
+  --shadow: 0 2px 10px rgba(0,0,0,.06);
+  --hover-bg: #F5F5F5;
+  --track-bg: #EDEDED;
+  --card-soft: #FAFAFA;
+}
+:root[data-theme="cinnamon"] {
+  --bg: #E8F6FF;
+  --card: #FFFFFF;
+  --ink: #3A4A5A;
+  --muted: #7FA6C4;
+  --line: #CFE8F7;
+  --primary: #6BB8E8;
+  --primary-soft: #E4F3FC;
+  --teal: #8FD0F0;
+  --amber: #FFD966;
+  --coral: #FF9A9E;
+  --purple: #A7C7E7;
+  --red: #E5484D;
+  --green: #6FCF97;
+  --shadow: 0 2px 10px rgba(107,184,232,.12);
+  --hover-bg: #E4F3FC;
+  --track-bg: #D5EAF7;
+  --card-soft: #F2FAFF;
+}
+:root[data-theme="melody"] {
+  --bg: #FFF0F3;
+  --card: #FFFFFF;
+  --ink: #5A4050;
+  --muted: #C08A9C;
+  --line: #F5D3DC;
+  --primary: #FF6B8A;
+  --primary-soft: #FFE4EA;
+  --teal: #FF9FB2;
+  --amber: #FFC78F;
+  --coral: #FF6B8A;
+  --purple: #E79AC4;
+  --red: #E5484D;
+  --green: #7CC98C;
+  --shadow: 0 2px 10px rgba(255,107,138,.12);
+  --hover-bg: #FFE4EA;
+  --track-bg: #F6D9E0;
+  --card-soft: #FFF6F8;
+}
+:root[data-theme="pony"] {
+  --bg: #F3EEFF;
+  --card: #FFFFFF;
+  --ink: #4A3F6B;
+  --muted: #9B8FC0;
+  --line: #E4DBF5;
+  --primary: #8B5CF6;
+  --primary-soft: #EDE4FF;
+  --teal: #22C1A7;
+  --amber: #FFB020;
+  --coral: #FF7A8A;
+  --purple: #C084FC;
+  --red: #F0576C;
+  --green: #34C77B;
+  --shadow: 0 2px 10px rgba(139,92,246,.12);
+  --hover-bg: #EDE4FF;
+  --track-bg: #E3D9F7;
+  --card-soft: #F8F4FF;
+}
+
+
+/* 露比（宝石红粉） */
+:root[data-theme="ruby"] {
+  --bg: #FFF3F0;
+  --card: #FFFFFF;
+  --ink: #5C4040;
+  --muted: #C08A80;
+  --line: #F4D9D2;
+  --primary: #E5484D;
+  --primary-soft: #FFE6E4;
+  --teal: #F08A8A;
+  --amber: #FFC78F;
+  --coral: #FF6B6B;
+  --purple: #E79AB0;
+  --red: #D63B40;
+  --green: #6FCF97;
+  --shadow: 0 2px 10px rgba(229,72,77,.12);
+  --hover-bg: #FFE6E4;
+  --track-bg: #F6DDD9;
+  --card-soft: #FFF7F5;
+}
+/* 吉伊卡哇（奶油黄 + 蓝 + 粉） */
+:root[data-theme="chiikawa"] {
+  --bg: #FFF9E8;
+  --card: #FFFFFF;
+  --ink: #5A5446;
+  --muted: #B0A78E;
+  --line: #F0E6C8;
+  --primary: #5AA9D6;
+  --primary-soft: #E4F3FA;
+  --teal: #FFD166;
+  --amber: #FFD166;
+  --coral: #FFA3C0;
+  --purple: #C9A7E8;
+  --red: #E87A6A;
+  --green: #8FC98A;
+  --shadow: 0 2px 10px rgba(90,169,214,.12);
+  --hover-bg: #EAF6FB;
+  --track-bg: #E4EEF3;
+  --card-soft: #FCF8EC;
+}
+
+/* ===== 页面贴纸 ===== */
+.hero { position: relative; overflow: hidden; }
+.hero-left, .hero-right { position: relative; z-index: 2; }
+.hero-stickers { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.sticker-float { position: absolute; width: 44px; height: 44px; opacity: .95; animation: floaty 4s ease-in-out infinite; filter: drop-shadow(0 2px 4px rgba(0,0,0,.15)); }
+.sticker-float.svg { display: flex; align-items: center; justify-content: center; }
+.sticker-float.svg svg { width: 100%; height: 100%; }
+@keyframes floaty { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
+.sticker-manage-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.sticker-manage-item { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; background: var(--card-soft); }
+.sticker-thumb { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--card); }
+.sticker-thumb img { max-width: 100%; max-height: 100%; }
