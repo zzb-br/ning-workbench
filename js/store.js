@@ -565,13 +565,13 @@
 
   /* ---------------- 计时器会话（刷新页面后恢复） ---------------- */
   function saveTimerSession(session) {
-    try { sessionStorage.setItem(SESSION_TIMER_KEY, JSON.stringify(session)); } catch (e) {}
+    try { localStorage.setItem(SESSION_TIMER_KEY, JSON.stringify(session)); } catch (e) {}
   }
   function loadTimerSession() {
-    try { return JSON.parse(sessionStorage.getItem(SESSION_TIMER_KEY) || 'null'); } catch (e) { return null; }
+    try { return JSON.parse(localStorage.getItem(SESSION_TIMER_KEY) || 'null'); } catch (e) { return null; }
   }
   function clearTimerSession() {
-    try { sessionStorage.removeItem(SESSION_TIMER_KEY); } catch (e) {}
+    try { localStorage.removeItem(SESSION_TIMER_KEY); } catch (e) {}
   }
 
   global.Util = Util;

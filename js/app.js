@@ -1789,6 +1789,9 @@
     document.getElementById('reminderBarClose').addEventListener('click', function () {
       document.getElementById('reminderBar').hidden = true;
     });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && state.timer.moduleId) renderTimerPop();
+    });
     setInterval(checkReminders, 20000);
     checkReminders();
 
